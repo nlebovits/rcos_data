@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>RCOs Data Reports - About This Project</title>
+<title>RCOs Data Reports - Data Sources</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -33,6 +33,7 @@ ul.task-list li input[type="checkbox"] {
 <script src="site_libs/quarto-html/quarto.js"></script>
 <script src="site_libs/quarto-html/popper.min.js"></script>
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
 <link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
 <link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
@@ -62,7 +63,7 @@ ul.task-list li input[type="checkbox"] {
 <link rel="stylesheet" href="styles.css">
 </head>
 
-<body class="nav-fixed fullcontent">
+<body class="nav-fixed">
 
 <div id="quarto-search-results"></div>
   <header id="quarto-header" class="headroom fixed-top">
@@ -83,11 +84,11 @@ ul.task-list li input[type="checkbox"] {
  <span class="menu-text">Home</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link active" href="./about.html" aria-current="page">
+    <a class="nav-link" href="./about.html">
  <span class="menu-text">About This Project</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./data_sources.html">
+    <a class="nav-link active" href="./data_sources.html" aria-current="page">
  <span class="menu-text">Data Sources</span></a>
   </li>  
 </ul>
@@ -100,45 +101,44 @@ ul.task-list li input[type="checkbox"] {
 <div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
 <!-- margin-sidebar -->
-    
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#where-do-our-data-come-from" id="toc-where-do-our-data-come-from" class="nav-link active" data-scroll-target="#where-do-our-data-come-from">Where do our data come from?</a></li>
+  </ul>
+</nav>
+    </div>
 <!-- main -->
-<div class="quarto-about-trestles">
-  <div class="about-entity">
-    <img src="group_photo.jpeg" class="about-image
-  rounded " style="width: 20em;">
+<main class="content" id="quarto-document-content">
+
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">About This Project</h1>
+<h1 class="title">Data Sources</h1>
 </div>
+
+
+
 <div class="quarto-title-meta">
+
+    
+  
+    
   </div>
+  
+
 </header>
-  </div>
-  <div class="about-contents"><main class="content" id="quarto-document-content">
-<section id="what-is-this" class="level2">
-<h2 data-anchor-id="what-is-this">What is this?</h2>
-</section>
-<section id="why-build-this" class="level2">
-<h2 data-anchor-id="why-build-this">Why build this?</h2>
-<ul>
-<li>Hear a lot from community orgs that they need the same data</li>
-<li>Code makes it free, reproducible, and sustainable</li>
-</ul>
-</section>
-<section id="how-did-we-do-this" class="level2">
-<h2 data-anchor-id="how-did-we-do-this">How did we do this?</h2>
-<p>Everything that you see on this website is available for free.</p>
-<p>This project was built to be copied; we hope it inspires you to do similar work. Please feel free to fork the repository, or consider submitting a pull request to improve the project.</p>
-</section>
-<section id="who-are-we" class="level2">
-<h2 data-anchor-id="who-are-we">Who are we?</h2>
-<p>Group of planning students at Penn</p>
+
+<section id="where-do-our-data-come-from" class="level2">
+<h2 class="anchored" data-anchor-id="where-do-our-data-come-from">Where do our data come from?</h2>
+<p>All the data used in this project are publicly available. They are drawn from two primary sources: the American Community Survey, and the City of Philadelphia.</p>
+<p>The City of Philadelphia makes most of its data available on Open Data Philly. Other sources are available through the City’s ArcGIS REST API, and still others through the City’s SQL Database.</p>
 
 
 </section>
-</main></div>
-</div>
- <!-- /main -->
+
+</main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
 window.document.addEventListener("DOMContentLoaded", function (event) {
   const toggleBodyColorMode = (bsSheetEl) => {
@@ -159,6 +159,13 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     }
   }
   toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
   const clipboard = new window.ClipboardJS('.code-copy-button', {
     target: function(trigger) {
       return trigger.previousElementSibling;

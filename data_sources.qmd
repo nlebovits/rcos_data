@@ -1,0 +1,8 @@
+---
+title: "Data Sources"
+---
+
+## Where do our data come from?
+All the data used in this project are publicly available. They are drawn from two primary sources: the American Community Survey, and the City of Philadelphia.
+
+The City of Philadelphia makes most of its data available on Open Data Philly. Other sources are available through the City's ArcGIS REST API, and still others through the City's SQL Database.

@@ -3,16 +3,18 @@ project:
   output-dir: docs
 
 website:
-  title: "rcos_data_reports"
+  title: "RCOs Data Reports"
   navbar:
     left:
       - href: index.qmd
         text: Home
       - about.qmd
+      - data_sources.qmd
 
 format:
   html:
-    theme: cosmo
+    theme: 
+      - mystyles.scss
     css: styles.css
     toc: true
 
