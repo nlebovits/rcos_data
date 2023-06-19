@@ -1,9 +1,23 @@
 ---
-title: "About"
+title: "About This Project"
+image: group_photo.jpeg
+about:
+  template: trestles
 ---
 
-About this site
+## What is this?
 
-```{r}
-1 + 1
-```
+## Why build this?
+- Hear a lot from community orgs that they need the same data
+- Code makes it free, reproducible, and sustainable
+
+## How did we do this?
+Everything that you see on this website is available for free.
+
+This project was built to be copied; we hope it inspires you to do similar work. Please feel free to fork the repository, or consider submitting a pull request to improve the project.
+
+
+## Who are we?
+Group of planning students at Penn
+
+

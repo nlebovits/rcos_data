@@ -40,5 +40,26 @@
     "title": "Data Reports for Philly RCOs",
     "section": "Citations & Data Sources",
     "text": "Citations & Data Sources"
+  },
+  {
+    "objectID": "about.html#why-build-this",
+    "href": "about.html#why-build-this",
+    "title": "About This Project",
+    "section": "Why build this?",
+    "text": "Why build this?\n\nHear a lot from community orgs that they need the same data\nCode makes it free, reproducible, and sustainable"
+  },
+  {
+    "objectID": "about.html#how-did-we-do-this",
+    "href": "about.html#how-did-we-do-this",
+    "title": "About This Project",
+    "section": "How did we do this?",
+    "text": "How did we do this?\nEverything that you see on this website is available for free.\nThis project was built to be copied; we hope it inspires you to do similar work. Please feel free to fork the repository, or consider submitting a pull request to improve the project."
+  },
+  {
+    "objectID": "about.html#who-are-we",
+    "href": "about.html#who-are-we",
+    "title": "About This Project",
+    "section": "Who are we?",
+    "text": "Who are we?\nGroup of planning students at Penn"
   }
 ]
