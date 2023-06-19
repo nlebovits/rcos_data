@@ -4,11 +4,9 @@ title: "Data Reports for Philly RCOs"
 format: 
   html:
     toc: true
-    theme: flatly
-    code-fold: true
-    code-summary: "Show code"
     
 execute:
+  echo: false
   warning: false
   error: false
   messages: false
@@ -26,38 +24,76 @@ This Quarto document is made interactive using Shiny. Interactive documents allo
 
 ## Find My Organization
 ```{r data import}
+#| include: false
+
 # here, we'll execute all of our data imports and manipulation
 
 
-library(tigris, quietly = T)
-library(tidyverse, quietly = T)
-library(sf, quietly = T)
-library(mapview, quietly = T)
-library(acs, quietly = T)
-library(tidycensus, quietly = T)
-library(gtools, quietly = T) #for smartbind
+# Create a vector of required package names
+required_packages <- c("devtools", "remotes", "tidyverse", "sf", 
+                      "tigris", "tidycensus", "acs", "ggspatial",
+                      "ggiraph", "gtools", "janitor", "stringr", 
+                      "tmap", "ggthemr", "downloadthis", "RColorBrewer",
+                      "scales", "monochromeR", "verbaliseR", "flexdashboard",
+                      "rphl", "plotly")
+
+# Check if required packages are installed, and install them if not
+installed_packages <- installed.packages()[, "Package"]
+missing_packages <- setdiff(required_packages, installed_packages)
+
+if (length(missing_packages) > 0) {
+  message("Installing missing packages: ", paste(missing_packages, collapse = ", "))
+  install.packages(missing_packages)
+}
+
+library(tidyverse)
+library(sf)
+library(tigris)
+library(tidycensus)
+library(acs)
+library(ggspatial)
+library(ggiraph)
+library(gtools) #for smartbind
 library(janitor) #to clean dirty excel files
 library(stringr)
 library(rphl)
-library(plotly) # to make graphcs interactive
 library(ggthemr)
 library(tmap)
-library(ggiraph) # to make graphs interactive
 library(downloadthis)
 library(RColorBrewer)
 library(scales)
-library(tigris)
 library(monochromeR)
 library(verbaliseR)
 library(flexdashboard)
+library(plotly)
 
 tmap_options(basemaps = "Esri.WorldGrayCanvas") #set global tmap basemap
 
 tmap_mode('view')
 
-ggthemr("pale") #set global ggplot theme
+ggthemr("light", type = 'outer') #set global ggplot theme
+
+page_bg = '#f6f1eb'
+
+# swatch()
+
+# "#785d37" "#62bba5" "#ffb84d" "#aaa488" "#b2432f" "#3a6589" "#9b5672" "#908150" "#373634"
 
 options(tigris_use_cache = TRUE)
+
+    # "#62bba5" - aquamarine
+    # "#ffb84d" - sunflower
+    # "#9e57a0" - amethyst
+    # "#e75874" - coral
+    # "#5c93c9" - cerulean
+    # "#b39763" - sandstone
+    # 
+    #     "#62bba5" - aquamarine
+    # "#89dbc4" - light-aquamarine
+    # "#addad1" - pale-aquamarine
+    # "#d6f4e0" - mint
+    # "#ffb84d" - sunflower
+    # "#ffcc7a" - light-sunflower
 
 # define crs to be used globally
 crs = "epsg:2272" # local us feet crs
@@ -78,51 +114,6 @@ green = generate_palette("#41a65c", modification = "go_lighter", n_colours = 4, 
 red = generate_palette("#FF8D7D", modification = "go_lighter", n_colours = 4, view_palette = FALSE)
 
 map_pal_plus = paste(c(blue[1], blue[3], green[1], green[3], red[1], red[3]))
-
-# define color palette
-woodland_palette_full = c('#231f20',
-                                   '#1c3c4a',
-                                   '#344a2f',
-                                   '#886ea9',
-                                   '#e02c2d',
-                                   '#ffb400',
-                                   '#d2e6ee',
-                                   '#efefef',
-                                   '#e4eee6',
-                                   '#e8e8e8',
-                                   '#ecdace',
-                                   '#fff3d6',
-                                   '#9bc6d9',
-                                   '#c2c2c2',
-                                   '#a9aa7e',
-                                   '#d5cce1',
-                                   '#c79191',
-                                   '#ffe099'
-)
-
-# define color palette
-woodland_palette_dark = c('#231f20',
-                                   '#1c3c4a',
-                                   '#344a2f',
-                                   '#886ea9',
-                                   '#e02c2d',
-                                   '#ffb400'
-)
-
-# define color palette
-woodland_palette_light = c('#d2e6ee',
-                                    '#efefef',
-                                    '#e4eee6',
-                                    '#e8e8e8',
-                                    '#ecdace',
-                                    '#fff3d6',
-                                    '#9bc6d9',
-                                    '#c2c2c2',
-                                    '#a9aa7e',
-                                    '#d5cce1',
-                                    '#c79191',
-                                    '#ffe099'
-)
 
 pz = st_read("C:/Users/Nissim/Documents/Building Permits for Dante/west_phl_building_permits/west_phl_building_permits/Philadelphia_Promise_Zone.shp") |>
         st_transform(crs = st_crs(crs))
@@ -672,11 +663,6 @@ ggplot(all_woodland_crimes) +
   labs(title = 'Crimes on Woodland Ave',
        subtitle = '2018 through 2022',
        fill = "Type") +
-  scale_fill_manual(values = c(
-    '#344a2f',
-             '#ffb400',
-             '#886ea9' ))+
-  theme_minimal() +
   theme(axis.title.x = element_blank(),
         axis.title.y = element_blank())
 
@@ -687,9 +673,7 @@ ggplot(all_woodland_crimes) +
        subtitle = '2018 through 2022',
        y = 'Crimes per Capita',
        x = 'Year',
-       fill = "Geography") +
-  scale_fill_manual(values = rev(woodland_palette_light)) +
-  theme_minimal()
+       fill = "Geography")
     
     ggplot(tot_econ_crime) +
   geom_col(aes(x = year, y = econcrime_per_cap, fill = geom),  alpha = 0.7, position = 'dodge') +
@@ -697,9 +681,7 @@ ggplot(all_woodland_crimes) +
        subtitle = '2018 through 2022',
        y = 'Crimes per Capita',
        x = 'Year',
-       fill = "Geography") +
-  scale_fill_manual(values = rev(woodland_palette_light)) +
-      theme_minimal()
+       fill = "Geography")
     
     ggplot(tot_drug_crime) +
   geom_col(aes(x = year, y = drugcrime_per_cap, fill = geom),  alpha = 0.7, position = 'dodge') +
@@ -707,9 +689,7 @@ ggplot(all_woodland_crimes) +
        subtitle = '2018 through 2022',
        y = 'Crimes per Capita',
        x = 'Year',
-       fill = "Geography") +
-  scale_fill_manual(values = rev(woodland_palette_light)) +
-      theme_minimal()
+       fill = "Geography")
 ```
 
 ### Education
@@ -766,15 +746,12 @@ tm_view(set.view = 15,
 
 ##### Building Permits Issued per Week
 ```{r typeofwork hist}
-ggplotly(
-  ggplot(pz_construction_permits, aes(x = permitissuedate, fill = maj_or_min)) +
+ggplot(pz_construction_permits, aes(x = permitissuedate, fill = maj_or_min)) +
   geom_histogram(alpha = 0.7, color = NA, bins = 52) +
   labs(y = "Permits Issued") +
   facet_grid(maj_or_min ~ .) + #arranges charts in rows instead of side by side
   theme(legend.position = 'none',
-        axis.title.x = element_blank())+
-  scale_fill_manual(values = map_pal_plus)
-)
+        axis.title.x = element_blank())
 ```
 
 ### Community Assets
@@ -790,13 +767,11 @@ ggplotly(
 ##### Illegal Dumping Reports by Week
 
 ```{r density}
-ggplotly(
   ggplot(complaints, aes(x = requested_datetime)) +
   geom_histogram(alpha = 0.3, fill = "#C45B4D", color = NA, bins = 52)+
     labs(y = "Count") +
   theme(legend.position = 'bottom',
         axis.title.x = element_blank())
-    )
 ```
 
 ##### Open Cases
@@ -804,19 +779,15 @@ ggplotly(
 *Current open illegal dumping cases*
 
 ```{r open map}
-tmap_mode('view')
-
-tm_shape(complaints |> filter(status == "Open")) +
-  tm_dots(title = "Complaints",
-          col = 'status',
-          palette = status_pal,
-          alpha = 0.2,
-          id = "address",
-              popup.vars = c("Status" = "status",
-                             "Date Requested" = "requested_datetime",
-                             "Date Closed" = "closed_datetime")) +
-tm_view(view.legend.position = c("right", "bottom"),
-        set.view = 12)
+ggplot(complaints |> filter(status == "Open")) +
+  geom_sf() +
+  annotation_map_tile(zoomin = -1, type = "cartolight") +
+  layer_spatial(complaints |> filter(status == "Open")) +
+  annotation_north_arrow(location = "br", which_north = "true")  +
+  theme_void() +
+  theme(plot.background = element_rect(fill = page_bg),
+        panel.background = element_blank(),
+        plot.margin = margin(0, 0, 0, 0))
 ```
 
 ##### Open Cases by Census Tract
@@ -892,5 +863,3 @@ tm_view(view.legend.position = c("right", "bottom"),
 ```
 
 #### Traffic Safety
-
-## Citations & Data Sources
