@@ -1,11 +1,896 @@
 ---
-title: "rcos_data_reports"
+title: "Data Reports for Philly RCOs"
+
+format: 
+  html:
+    toc: true
+    theme: flatly
+    code-fold: true
+    code-summary: "Show code"
+    
+execute:
+  warning: false
+  error: false
+  messages: false
 ---
 
-This is a Quarto website.
+Welcome to the website!
 
-To learn more about Quarto websites visit <https://quarto.org/docs/websites>.
+The plan is to make this page interactive, with a full downloadable report for every RCO in the city.
 
-```{r}
-1 + 1
+## What is this?
+
+This Quarto document is made interactive using Shiny. Interactive documents allow readers to modify parameters and see the results immediately. Learn more about Shiny interactive documents at <https://quarto.org/docs/interactive/shiny/>.
+
+*Download this button*
+
+## Find My Organization
+```{r data import}
+# here, we'll execute all of our data imports and manipulation
+
+
+library(tigris, quietly = T)
+library(tidyverse, quietly = T)
+library(sf, quietly = T)
+library(mapview, quietly = T)
+library(acs, quietly = T)
+library(tidycensus, quietly = T)
+library(gtools, quietly = T) #for smartbind
+library(janitor) #to clean dirty excel files
+library(stringr)
+library(rphl)
+library(plotly) # to make graphcs interactive
+library(ggthemr)
+library(tmap)
+library(ggiraph) # to make graphs interactive
+library(downloadthis)
+library(RColorBrewer)
+library(scales)
+library(tigris)
+library(monochromeR)
+library(verbaliseR)
+library(flexdashboard)
+
+tmap_options(basemaps = "Esri.WorldGrayCanvas") #set global tmap basemap
+
+tmap_mode('view')
+
+ggthemr("pale") #set global ggplot theme
+
+options(tigris_use_cache = TRUE)
+
+# define crs to be used globally
+crs = "epsg:2272" # local us feet crs
+
+choro_pal = rev(generate_palette("#C45B4D", modification = "go_lighter", n_colours = 5, view_palette = FALSE)) # create palette for choropleth map
+
+blk_choro_pal = rev(generate_palette("#444444", modification = "go_lighter", n_colours = 5, view_palette = FALSE)) # create palette for choropleth map
+
+map_pal = c("#3262AB", "#C45B4D","#444444")
+
+status_pal = c("Open" = "#C45B4D",
+                "Closed" = "#444444")
+
+blue = generate_palette("#3262AB", modification = "go_lighter", n_colours = 4, view_palette = FALSE)
+
+green = generate_palette("#41a65c", modification = "go_lighter", n_colours = 4, view_palette = FALSE)
+
+red = generate_palette("#FF8D7D", modification = "go_lighter", n_colours = 4, view_palette = FALSE)
+
+map_pal_plus = paste(c(blue[1], blue[3], green[1], green[3], red[1], red[3]))
+
+# define color palette
+woodland_palette_full = c('#231f20',
+                                   '#1c3c4a',
+                                   '#344a2f',
+                                   '#886ea9',
+                                   '#e02c2d',
+                                   '#ffb400',
+                                   '#d2e6ee',
+                                   '#efefef',
+                                   '#e4eee6',
+                                   '#e8e8e8',
+                                   '#ecdace',
+                                   '#fff3d6',
+                                   '#9bc6d9',
+                                   '#c2c2c2',
+                                   '#a9aa7e',
+                                   '#d5cce1',
+                                   '#c79191',
+                                   '#ffe099'
+)
+
+# define color palette
+woodland_palette_dark = c('#231f20',
+                                   '#1c3c4a',
+                                   '#344a2f',
+                                   '#886ea9',
+                                   '#e02c2d',
+                                   '#ffb400'
+)
+
+# define color palette
+woodland_palette_light = c('#d2e6ee',
+                                    '#efefef',
+                                    '#e4eee6',
+                                    '#e8e8e8',
+                                    '#ecdace',
+                                    '#fff3d6',
+                                    '#9bc6d9',
+                                    '#c2c2c2',
+                                    '#a9aa7e',
+                                    '#d5cce1',
+                                    '#c79191',
+                                    '#ffe099'
+)
+
+pz = st_read("C:/Users/Nissim/Documents/Building Permits for Dante/west_phl_building_permits/west_phl_building_permits/Philadelphia_Promise_Zone.shp") |>
+        st_transform(crs = st_crs(crs))
+
+# import phl tracts; pull woodland ave tracts only
+woodland_tracts = tracts('PA', 'Philadelphia') |>
+  filter(NAME %in% c(66, 63)) |>
+  st_transform(crs = st_crs("EPSG:2272")) # project to PA South NAD 1983 US Ft
+
+### structure:
+
+# 1. import data
+# 2. import pz boundaries
+# 3. adjust to pz (clip, inter/extra-polate)
+# 4. df(s) ready to go for viz
+
+
+### 1. import data
+
+# vital stats from ODP
+# crime via SQL API
+# high quality childcare from here: https://www.childcaremap.org/newmaps#/ (or maybe ODP)
+
+### 2. import pz boundaries
+
+phl_demos <- get_acs(geography = "tract", # What is the lowest level of geography are we interested in?
+                     year = 2020, # What year do we want - this can also be used for 2000 census data
+                     variables = c(
+                       #Population
+                       "B01003_001E", #Total population
+                       "B11001_001E", #Total number of households
+                       "B09001_001E", #Total population under 18
+                       "B09021_022", #Estimate!!Total:!!65 years and over:
+                       "B01002_001", #Estimate!!Median age --!!Total:
+                       
+                       
+                       #Race
+                       "B02001_002E", #Total white population
+                       "B02001_003E", #Total Black population
+                       "B02001_004E", #American Indian and Alaska Native alone
+                       "B02001_005E", #Total Asian population
+                       "B02001_006E", #Native Hawaiian and Other Pacific Islander alone
+                       "B02001_007E", #Some other race alone
+                       "B02001_008E", #Two or more races
+                       
+                       #Ethnicitiy
+                       "B01001I_001E", #Total: Hispanic or Latino (distinct from race)
+                       
+                       #Health
+                        #no health care
+                       "B27010_017E", #Estimate!!Total:!!Under 19 years:!!No health insurance coverage
+                       "B27010_033E", #Estimate!!Total:!!19 to 34 years:!!No health insurance coverage
+                       "B27010_050E", #Estimate!!Total:!!35 to 64 years:!!No health insurance coverage
+                       "B27010_066E", #Estimate!!Total:!!65 years and over:!!No health insurance coverage
+                       
+                        #public health care
+                       "B18135_006E", #Estimate!!Total:!!Under 19 years:!!With a disability:!!With health insurance coverage:!!With public health coverage
+                       "B18135_011E", #Estimate!!Total:!!Under 19 years:!!No disability:!!With health insurance coverage:!!With public health coverage
+                       "B18135_017E", #Estimate!!Total:!!19 to 64 years:!!With a disability:!!With health insurance coverage:!!With public health coverage
+                       "B18135_022E", #Estimate!!Total:!!19 to 64 years:!!No disability:!!With health insurance coverage:!!With public health coverage
+                       "B18135_028E", #Estimate!!Total:!!65 years and over:!!With a disability:!!With health insurance coverage:!!With public health coverage
+                       "B18135_033E", #Estimate!!Total:!!65 years and over:!!No disability:!!With health insurance coverage:!!With public health coverage
+                       
+                        #snap
+                       "B99221_001E", #Estimate!!Total: SNAP recipients
+                       
+                       #Housing
+                       "B25064_001E", #Median gross rent
+                       "B25070_007E", #Rent 30.0 to 34.9 percent
+                       "B25070_008E", #Rent 35.0 to 39.9 percent
+                       "B25070_009E", #Rent 40.0 to 49.9 percent
+                       "B25070_010E", #Rent 50.0 percent or more
+                       "B25003_002E", #Owner occupied
+                       "B25003_003E", #Renter occupied
+                       "B25001_001E", #Number of residential units
+                       "B25002_002E", #Occupied
+                       "B25002_003E", #Vacant
+                       "B25077_001E", #Median house value (dollars)
+                       
+                       #Income & Work
+                       "B19013_001E", #Median household income
+                       "B17001_002E", #Income in the past 12 months below poverty level:
+                       "B23025_003E", #In labor force:!!Civilian labor force:
+                       "B23025_004E", #In labor force:!!Civilian labor force:!!Employed
+                       "B23025_005E", #In labor force:!!Civilian labor force:!!Unemployed
+                       
+                       #Education
+                       "B15003_001E", #Total Pop 25+
+                       "B15003_017E", #Regular high school diploma
+                       "B15003_018E", #GED or alternative credential
+                       "B15003_019E", #Some college, less than 1 year
+                       "B15003_020E", #Some college, 1 or more years, no degree
+                       "B15003_021E", #Associate's degree
+                       "B15003_022E", #Bachelor's degree
+                       "B15003_023E", #Master's degree
+                       "B15003_024E", #Professional school degree
+                       "B15003_025E"),  #Doctorate degree 
+                     geometry = T, # Do we want this as a shapefile? No, not now.
+                     state = "PA", # What state?
+                     county = "Philadelphia", # What County?
+                     output = "wide") |>
+  rename(#Population
+    tot_pop = B01003_001E,
+    tot_hh = B11001_001E,
+    tot_under_eighteen = B09001_001E,
+    tot_65_and_up = B09021_022E,
+    med_age = B01002_001E, 
+    
+    #Race
+    tot_wht_pop = B02001_002E,
+    tot_blk_pop = B02001_003E,
+    tot_native_pop = B02001_004E,
+    tot_other_race = B02001_007E,
+    tot_two_plus_race = B02001_008E,
+    
+    #Ethnicitiy
+    tot_hisp_pop = B01001I_001E,
+    
+     #snap
+    snap_enrollment = B99221_001E,
+    
+    #Housing
+    med_gross_rent = B25064_001E, #Median gross rent
+    owner_occ = B25003_002E, #Owner occupied
+    renter_occ = B25003_003E, #Renter occupied
+    num_resid_units = B25001_001E, #Number of residential units
+    occ_units = B25002_002E, #Occupied
+    vac_units = B25002_003E, #Vacant
+    med_house_value = B25077_001E, #Median house value (dollars)
+    
+    #Income & Work
+    med_hh_inc = B19013_001E, #Median household income
+    inc_below_pov = B17001_002E, #Income in the past 12 months below poverty level:
+    tot_lab_force = B23025_003E, #In labor force:!!Civilian labor force:
+    tot_unempl = B23025_005E, #In labor force:!!Civilian labor force:!!Unemployed
+    
+    #Education
+    tot_pop_25plus = B15003_001E) |> #Total Pop 25+
+  mutate(non_wht_pop = tot_pop - tot_wht_pop,
+         tot_aapi_pop = (B02001_005E + #Tot Asian pop
+                           B02001_006E), #Tot Hawaiian and Pacific Islander pop
+         tot_rent_burden = (B25070_007E + #Rent 30.0 to 34.9 percent
+                              B25070_008E + #Rent 35.0 to 39.9 percent
+                              B25070_009E + #Rent 40.0 to 49.9 percent
+                              B25070_010E), #Rent 50.0 percent or more
+         tot_hs_dip_or_alt = (B15003_017E+ #Regular high school diploma
+                                B15003_018E), #GED or alternative credential
+         tot_some_college = (B15003_019E + #Some college, less than one year
+                               B15003_020E), #Some college, 1 or more years, no degree
+         tot_bach_plus = (B15003_021E +  #Associate's degree
+                            B15003_022E + #Bachelor's degree
+                            B15003_023E + #Master's degree
+                            B15003_024E + #Professional school degree
+                            B15003_025E),  #Doctorate degree 
+          tot_no_health_care = (B27010_017E + #under 18
+                                B27010_033E + #19 to 34
+                                B27010_050E + #35 to 64
+                                B27010_066E), #65 and up
+          tot_public_health_care = (B18135_006E + #Estimate!!Total:!!Under 19 years:!!With a disability:!!With health insurance coverage:!!With public health coverage
+                                    B18135_011E + #Estimate!!Total:!!Under 19 years:!!No disability:!!With health insurance coverage:!!With public health coverage
+                                    B18135_017E + #Estimate!!Total:!!19 to 64 years:!!With a disability:!!With health insurance coverage:!!With public health coverage
+                                    B18135_022E + #Estimate!!Total:!!19 to 64 years:!!No disability:!!With health insurance coverage:!!With public health coverage
+                                    B18135_028E + #Estimate!!Total:!!65 years and over:!!With a disability:!!With health insurance coverage:!!With public health coverage
+                                    B18135_033E)) |> #Estimate!!Total:!!65 years and over:!!No disability:!!With health insurance coverage:!!With public health coverage)
+        st_transform(crs = st_crs(crs))
+### clipping to pz
+
+#########################SEPARATE VARIABLES BY TYPE#######################
+
+#Once the 2020 US Census summary file 1 is available, you can insert the population weights code here
+#to more precisely estiamte spatially extensive varibles.
+
+#Extensive variables
+phl_demos_ext = phl_demos |>
+  dplyr::select(tot_pop,
+                tot_hh,
+                tot_under_eighteen,
+                tot_65_and_up,
+                tot_wht_pop,
+                tot_blk_pop,
+                tot_native_pop,
+                tot_other_race,
+                tot_two_plus_race,
+                tot_hisp_pop,
+                owner_occ,
+                renter_occ,
+                num_resid_units,
+                occ_units,
+                vac_units,
+                inc_below_pov,
+                tot_lab_force,
+                tot_unempl,
+                tot_pop_25plus, 
+                non_wht_pop,
+                tot_aapi_pop,
+                tot_rent_burden,
+                tot_hs_dip_or_alt,
+                tot_some_college,
+                tot_bach_plus,
+                snap_enrollment,
+                tot_no_health_care,
+                tot_public_health_care)
+
+#Intensive variables
+phl_demos_int = phl_demos |>
+  dplyr::select(med_gross_rent,
+                med_house_value,
+                med_hh_inc,
+                med_age)
+
+######################RUN SPATIAL INTERPOLATION#########################
+
+pz_demos_ext = st_interpolate_aw(phl_demos_ext[, 1:28], pz, ext = TRUE)
+
+pz_demos_int = st_interpolate_aw(na.omit(phl_demos_int[, 1:4]), pz, ext = FALSE)
+
+pz_demos_tot = st_join(pz_demos_ext, pz_demos_int)
+
+pz_demos_tot = pz_demos_tot |>
+  mutate(pct_und_18 = (tot_under_eighteen / tot_pop),
+         pct_non_wht_pop = (non_wht_pop / tot_pop),
+         pct_blk = (tot_blk_pop / tot_pop),
+         pct_aapi = (tot_aapi_pop / tot_pop),
+         pct_hisp = (tot_hisp_pop / tot_pop),
+         pct_own_occ = (owner_occ / num_resid_units),
+         pct_rent_occ = (renter_occ / num_resid_units),
+         resid_vac_rate = (vac_units / num_resid_units),
+         pov_rt = (inc_below_pov / tot_pop),
+         unempl_rt = (tot_unempl / tot_lab_force),
+         pct_hs_or_equiv = (tot_hs_dip_or_alt / tot_pop_25plus),
+         pct_some_college = (tot_some_college / tot_pop_25plus),
+         pct_bach_plus = (tot_bach_plus / tot_pop_25plus)
+  )
+
+pz_demos_tot = pz_demos_tot |>
+                as.data.frame() |>
+                select(-geometry,
+                       tot_pop,
+                       tot_hh,
+                       tot_under_eighteen,
+                       tot_65_and_up,
+                       tot_wht_pop,
+                       tot_blk_pop,
+                       tot_native_pop,
+                       tot_other_race,
+                       tot_two_plus_race,
+                       tot_hisp_pop,
+                       owner_occ,
+                       renter_occ,
+                       num_resid_units,
+                       occ_units,
+                       vac_units,
+                       inc_below_pov,
+                       tot_lab_force,
+                       tot_unempl,
+                       tot_pop_25plus, 
+                       non_wht_pop,
+                       tot_aapi_pop,
+                       tot_rent_burden,
+                       tot_hs_dip_or_alt,
+                       tot_some_college,
+                       snap_enrollment,
+                       tot_no_health_care,
+                       tot_public_health_care,
+                       med_gross_rent,
+                       med_house_value,
+                       med_hh_inc,
+                       med_age,
+                       pct_und_18,
+                       pct_non_wht_pop,
+                       pct_blk,
+                       pct_aapi,
+                       pct_hisp,
+                       pct_own_occ,
+                       pct_rent_occ,
+                       resid_vac_rate,
+                       pov_rt,
+                       unempl_rt,
+                       pct_hs_or_equiv,
+                       pct_some_college,
+                       pct_bach_plus)
+
+pz_demos_tot = t(pz_demos_tot)
+
+
+### import illegal dumping
+base_url = "https://phl.carto.com/api/v2/sql"
+
+one_year_ago = (lubridate::ymd(Sys.Date()) - lubridate::years(1))
+
+query = sprintf("
+        select *
+        from public_cases_fc
+        where requested_datetime  >= '%s'
+        ", one_year_ago)
+  
+complaints = st_as_sf(get_carto(query,
+                              format = 'csv',
+                              base_url = base_url,
+                              stringsAsFactors = FALSE) |>
+                      filter(service_name == "Illegal Dumping",
+                             !is.na(lat),
+                             !is.na(lon)),
+                      coords = c("lon", "lat"),
+                      crs = st_crs('EPSG:4326')) |>
+                      mutate(requested_datetime = as.Date(requested_datetime),
+                             closed_datetime = as.Date(closed_datetime)) |>
+                      st_transform(crs = st_crs(crs)) # will need these to be projected for KDE later
+
+complaints$closed_datetime[complaints$closed_datetime == ""] = NA
+
+complaints = complaints |>
+                              mutate(response_time_days = case_when(
+                                                                is.na(closed_datetime) ~ as.numeric(difftime(Sys.Date(), requested_datetime, units = "days")),
+                                                                TRUE ~ as.numeric(difftime(closed_datetime, requested_datetime, units = "days"))
+                                                                  )
+                                                                         )
+
+
+
+
+phl_blocks = st_transform(tracts("PA", "Philadelphia"), crs = st_crs(crs))
+
+phl_response_time = complaints |>
+                        select(response_time_days) |>
+                        aggregate(by = phl_blocks, FUN = mean)
+
+all_comps_x_tract = complaints |>
+                        aggregate(by = phl_blocks, FUN = length) |>
+                        select(objectid) |>
+                        rename(count = objectid)
+
+open_comps_x_tract = complaints |>
+                        filter(status == "Open") |>
+                        aggregate(by = phl_blocks, FUN = length) |>
+                        select(objectid) |>
+                        rename(count = objectid)
+
+
+query2 = sprintf("
+        select *
+        from permits
+        where permitissuedate >= '%s'
+        ", one_year_ago)
+  
+permits = st_as_sf(get_carto(query2,
+                              format = 'csv',
+                              base_url = base_url,
+                              stringsAsFactors = FALSE)|>
+                      filter(!is.na(geocode_x),
+                             !is.na(geocode_y)),
+                      coords = c('geocode_x',
+                                 'geocode_y'),
+                      crs = st_crs('EPSG:2272'))
+
+
+pz_permits = permits[pz, ]
+
+pz_construction_permits = pz_permits |>
+                            filter(permittype %in% c("BUILDING", "DEMOLITION", "RESIDENTIAL BUILDING"))
+
+pz_construction_permits$week = lubridate::week(pz_construction_permits$permitissuedate)
+
+pz_construction_permits$permitissuedate = as.Date(pz_construction_permits$permitissuedate)
+
+pz_construction_permits$permittype[pz_construction_permits$permittype == "BUILDING"] = "COMMERCIAL"
+
+pz_construction_permits$permittype[pz_construction_permits$permittype == "RESIDENTIAL BUILDING"] = "RESIDENTIAL"
+
+pz_construction_permits$status[pz_construction_permits$status == "AMENDMENT READY FOR ISSUE"] = "AMEND. READY FOR ISSUE"
+
+pz_construction_permits$status[pz_construction_permits$status == "AMENDMENT REVIEW"] = "AMEND. REVIEW"
+
+pz_construction_permits$status[pz_construction_permits$status == "AMENDMENT APPLICATION INCOMPLETE"] = "AMEND. APP. INCOMPLETE"
+
+pz_construction_permits = pz_construction_permits |>
+                            mutate(maj_or_min = case_when(
+                                                          permittype == "COMMERCIAL" & typeofwork == "ADDITION AND/OR ALTERATION" ~ "Minor Commercial",
+                                                          permittype == "RESIDENTIAL" & typeofwork == "ADDITION AND/OR ALTERATION" ~ "Minor Residential",
+                                                          permittype == "COMMERCIAL" & typeofwork == "NEW CONSTRUCTION" ~ "Major Commercial",
+                                                          permittype == "RESIDENTIAL" & typeofwork == "NEW CONSTRUCTION" ~ "Major Residential",
+                                                          typeofwork == "MINOR DEMOLITION" ~ "Minor Demolition",
+                                                          typeofwork == "MAJOR DEMOLITION" ~ "Major Demolition"
+                                                        ))
+
+pz_construction_permits$maj_or_min = factor(pz_construction_permits$maj_or_min, levels = c("Major Commercial",
+                                                                                            "Minor Commercial",
+                                                                                            "Major Residential",
+                                                                                            "Minor Residential",
+                                                                                            "Major Demolition",
+                                                                                            "Minor Demolition"))
+
+
+# define variable for six years ago to filter crime down
+six_years_ago = (lubridate::ymd(Sys.Date()) - lubridate::years(6))
+
+# define SQL query for database
+query3 = sprintf("
+        select dispatch_date_time, text_general_code, point_x, point_y
+        from incidents_part1_part2
+        where dispatch_date_time  >= '%s'
+        ", six_years_ago)
+
+# query crimes
+crimes = st_as_sf(get_carto(query3,
+                            format = 'csv',
+                            base_url = base_url,
+                            stringsAsFactors = FALSE) |>
+                    filter(!is.na(point_x),
+                           !is.na(point_y)),
+                  coords = c("point_x", "point_y"),
+                  crs = st_crs('EPSG:4326')) |>
+  mutate(year = lubridate::year(dispatch_date_time)) |>
+  filter( between (year, 2018, 2022) ) |>
+  st_transform(crs = st_crs(crs)) # project to PA South NAD 1983 US Ft
+
+# pull population estimates
+phl = get_acs(geography = "tract", # What is the lowest level of geography are we interested in?
+              year = 2021, # What year do we want - this can also be used for 2000 census data
+              variables = "B01003_001E", #Total population
+              geometry = FALSE,
+              state = "PA", # What state?
+              county = "Philadelphia", # What County?
+              output = "wide") 
+
+woodland = phl |>
+  filter(GEOID %in% c('42101006600', '42101006300'))
+
+phl_pop =  sum(phl$B01003_001E)
+
+woodland_pop = sum(woodland$B01003_001E)
+#------------Clean Data-----------------#
+
+
+### total phl crime
+
+phl_gun_crime = crimes |>
+  filter(text_general_code %in% c('Robbery Firearm', 'Aggravated Assault Firearm')) |>
+  mutate(type = 'Gun')
+
+
+phl_econ_crime = crimes |>
+  filter(grepl('Robbery|Burglary|Theft', text_general_code)) |>
+  mutate(type = 'Econ')
+
+
+phl_drug_crime = crimes |>
+  filter(grepl('Drug', text_general_code)) |>
+  mutate(type = 'Drug')
+
+
+
+### woodland ave specific crime
+
+woodland_gun_crime = phl_gun_crime[woodland_tracts, ]
+
+woodland_econ_crime = phl_econ_crime[woodland_tracts, ]
+
+woodland_drug_crime = phl_drug_crime[woodland_tracts, ]
+
+
+all_woodland_crimes = rbind(woodland_drug_crime, woodland_gun_crime, woodland_econ_crime)
+
+
+### annual phl crime per capita
+annual_phl_gun_crime = phl_gun_crime |>
+  group_by(year) |>
+  tally() |>
+  rename(total_gun_crime = n) |>
+  mutate(tot_pop = phl_pop,
+         guncrime_per_cap = total_gun_crime / tot_pop,
+         geom = 'Philadelphia')
+
+annual_phl_econ_crime = phl_econ_crime |>
+  group_by(year) |>
+  tally() |>
+  rename(total_econ_crime = n) |>
+  mutate(tot_pop = phl_pop,
+         econcrime_per_cap = total_econ_crime / tot_pop,
+         geom = 'Philadelphia')
+
+annual_phl_drug_crime = phl_drug_crime |>
+  group_by(year) |>
+  tally() |>
+  rename(total_drug_crime = n) |>
+  mutate(tot_pop = phl_pop,
+         drugcrime_per_cap = total_drug_crime / tot_pop,
+         geom = 'Philadelphia')
+
+
+
+### annual woodland ave crime per capita
+annual_woodland_gun_crime = woodland_gun_crime |>
+  group_by(year) |>
+  tally() |>
+  rename(total_gun_crime = n) |>
+  mutate(tot_pop = woodland_pop,
+         guncrime_per_cap = total_gun_crime / tot_pop,
+         geom = 'Woodland')
+
+annual_woodland_econ_crime = woodland_econ_crime |>
+  group_by(year) |>
+  tally() |>
+  rename(total_econ_crime = n) |>
+  mutate(tot_pop = woodland_pop,
+         econcrime_per_cap = total_econ_crime / tot_pop,
+         geom = 'Woodland')
+
+annual_woodland_drug_crime = woodland_drug_crime |>
+  group_by(year) |>
+  tally() |>
+  rename(total_drug_crime = n) |>
+  mutate(tot_pop = woodland_pop,
+         drugcrime_per_cap = total_drug_crime / tot_pop,
+         geom = 'Woodland')
+
+
+# combine woodland level and phl level crime for comparison
+tot_gun_crime = rbind(annual_woodland_gun_crime, annual_phl_gun_crime)
+
+tot_econ_crime = rbind(annual_woodland_econ_crime, annual_phl_econ_crime)
+
+tot_drug_crime = rbind(annual_woodland_drug_crime, annual_phl_drug_crime)
+
 ```
+
+
+## Data
+
+### Demographics
+
+### Workforce & Economy
+
+#### Commercial Vacancy
+
+##### Active Commercial Building Permits
+
+```{r building tally}
+valueBox(format(nrow(pz_construction_permits |> filter(permittype == "COMMERCIAL")), big.mark = ","), icon = "fa-building", color = "#3262AB")
+```
+
+### Crime
+
+```{r crime}
+ggplot(all_woodland_crimes) +
+  geom_histogram(aes(x = year, fill = type), alpha = 1, binwidth = 0.6, position = 'dodge') +
+  labs(title = 'Crimes on Woodland Ave',
+       subtitle = '2018 through 2022',
+       fill = "Type") +
+  scale_fill_manual(values = c(
+    '#344a2f',
+             '#ffb400',
+             '#886ea9' ))+
+  theme_minimal() +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank())
+
+
+    ggplot(tot_gun_crime) +
+  geom_col(aes(x = year, y = guncrime_per_cap, fill = geom),  alpha = 0.7, position = 'dodge') +
+  labs(title = 'Gun Crimes on Woodland Ave',
+       subtitle = '2018 through 2022',
+       y = 'Crimes per Capita',
+       x = 'Year',
+       fill = "Geography") +
+  scale_fill_manual(values = rev(woodland_palette_light)) +
+  theme_minimal()
+    
+    ggplot(tot_econ_crime) +
+  geom_col(aes(x = year, y = econcrime_per_cap, fill = geom),  alpha = 0.7, position = 'dodge') +
+  labs(title = 'Econ Crimes on Woodland Ave',
+       subtitle = '2018 through 2022',
+       y = 'Crimes per Capita',
+       x = 'Year',
+       fill = "Geography") +
+  scale_fill_manual(values = rev(woodland_palette_light)) +
+      theme_minimal()
+    
+    ggplot(tot_drug_crime) +
+  geom_col(aes(x = year, y = drugcrime_per_cap, fill = geom),  alpha = 0.7, position = 'dodge') +
+  labs(title = 'Drug Crimes on Woodland Ave',
+       subtitle = '2018 through 2022',
+       y = 'Crimes per Capita',
+       x = 'Year',
+       fill = "Geography") +
+  scale_fill_manual(values = rev(woodland_palette_light)) +
+      theme_minimal()
+```
+
+### Education
+
+### Public Health & Environmental Justice
+
+#### Asthma Rates
+
+#### Air Quality
+
+#### Tree Canopy Gap
+
+#### Heat Stress
+
+### Housing
+
+### Active Residential Building Permits
+
+```{r residential building tally}
+valueBox(format(nrow(pz_construction_permits |> filter(permittype == "RESIDENTIAL")), big.mark = ","), icon = "fa-home", color = "#41a65c")
+```
+
+##### Active Demolition Permits
+
+```{r demolition tally}
+valueBox(format(nrow(pz_construction_permits |> filter(permittype == "DEMOLITION")), big.mark = ","), icon = "fa-bomb", color = "#FF8D7D")
+```
+
+##### **Building Permits Mapped**
+
+```{r map}
+tmap_mode('view')
+
+tm_shape(pz_construction_permits) +
+  tm_dots(title = "Type of Work",
+          col = 'maj_or_min',
+          palette = map_pal_plus,
+          alpha = 0.7,
+          size = 0.1,
+          id = "address",
+              popup.vars = c("Owner" = "opa_owner",
+                             "Contractor" = "contractorname",
+                             "Date Issued" = "permitissuedate",
+                             "Permit Type" = "permittype",
+                             "Permit Description" = "permitdescription",
+                             "Type of Work" = "typeofwork",
+                             "Status" = "status",
+                             "Applicant Type" = "applicanttype")) +
+tm_shape(pz) +
+  tm_borders() +
+tm_view(set.view = 15,
+        view.legend.position = c("right", "bottom"))
+```
+
+##### Building Permits Issued per Week
+```{r typeofwork hist}
+ggplotly(
+  ggplot(pz_construction_permits, aes(x = permitissuedate, fill = maj_or_min)) +
+  geom_histogram(alpha = 0.7, color = NA, bins = 52) +
+  labs(y = "Permits Issued") +
+  facet_grid(maj_or_min ~ .) + #arranges charts in rows instead of side by side
+  theme(legend.position = 'none',
+        axis.title.x = element_blank())+
+  scale_fill_manual(values = map_pal_plus)
+)
+```
+
+### Community Assets
+
+#### Public Spaces
+
+#### Public Transit
+
+### Quality of Life
+
+#### Illegal Dumping
+
+##### Illegal Dumping Reports by Week
+
+```{r density}
+ggplotly(
+  ggplot(complaints, aes(x = requested_datetime)) +
+  geom_histogram(alpha = 0.3, fill = "#C45B4D", color = NA, bins = 52)+
+    labs(y = "Count") +
+  theme(legend.position = 'bottom',
+        axis.title.x = element_blank())
+    )
+```
+
+##### Open Cases
+
+*Current open illegal dumping cases*
+
+```{r open map}
+tmap_mode('view')
+
+tm_shape(complaints |> filter(status == "Open")) +
+  tm_dots(title = "Complaints",
+          col = 'status',
+          palette = status_pal,
+          alpha = 0.2,
+          id = "address",
+              popup.vars = c("Status" = "status",
+                             "Date Requested" = "requested_datetime",
+                             "Date Closed" = "closed_datetime")) +
+tm_view(view.legend.position = c("right", "bottom"),
+        set.view = 12)
+```
+
+##### Open Cases by Census Tract
+
+*The number of current open cases per census tract*
+
+```{r open cases}
+tmap_mode('view')
+
+tm_shape(open_comps_x_tract) +
+  tm_polygons(
+          title = "Open Cases",
+          col = 'count',
+          palette = choro_pal,
+          style = "jenks",
+          border.col = NA,
+          border.alpha = 0,
+          alpha = 0.7,
+          id = "address",
+          textNA = 'NA',
+          popup.vars = c("Open Cases" = 'count')) +
+tm_view(view.legend.position = c("right", "bottom"),
+            colorNA = 'transparent',
+        set.view = 12)
+```
+
+##### Total Cases by Census Tract
+
+*The number of total cases per census tract since `r prettify_date((lubridate::ymd(Sys.Date()) - lubridate::years(1)), uk_or_us = "US")`*
+
+```{r total cases}
+tmap_mode('view')
+
+tm_shape(all_comps_x_tract) +
+  tm_polygons(
+          title = "Total Cases",
+          col = 'count',
+          palette = choro_pal,
+          style = "jenks",
+          border.col = NA,
+          border.alpha = 0,
+          alpha = 0.7,
+          id = "address",
+          textNA = 'NA',
+          popup.vars = c("Total Cases" = 'count')) +
+tm_view(view.legend.position = c("right", "bottom"),
+            colorNA = 'transparent',
+        set.view = 12)
+```
+
+##### Average Response Time by Census Tract
+
+*The average time (in days) for a complaint to be marked "closed" in each census tract*
+
+```{r response time}
+tmap_mode('view')
+
+tm_shape(phl_response_time) +
+  tm_polygons(
+          title = "Avg. Response Time (Days)",
+          col = 'response_time_days',
+          palette = choro_pal,
+          style = "jenks",
+          border.col = NA,
+          border.alpha = 0,
+          alpha = 0.7,
+          id = "address",
+          textNA = 'NA',
+          popup.vars = c("Avg. Response Time (Days)" = 'response_time_days')) +
+tm_view(view.legend.position = c("right", "bottom"),
+            colorNA = 'transparent',
+        set.view = 12)
+```
+
+#### Traffic Safety
+
+## Citations & Data Sources
