@@ -16,9 +16,6 @@ Welcome to the website!
 
 The plan is to make this page interactive, with a full downloadable report for every RCO in the city.
 
-I am adding an example sentence that I can commit to GitHub!
-
-Here's another example!
 
 ## What is this?
 
