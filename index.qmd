@@ -18,6 +18,8 @@ The plan is to make this page interactive, with a full downloadable report for e
 
 I am adding an example sentence that I can commit to GitHub!
 
+Here's another example!
+
 ## What is this?
 
 This Quarto document is made interactive using Shiny. Interactive documents allow readers to modify parameters and see the results immediately. Learn more about Shiny interactive documents at <https://quarto.org/docs/interactive/shiny/>.
