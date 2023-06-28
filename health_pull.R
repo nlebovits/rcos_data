@@ -50,3 +50,25 @@ for (dataset in city_datasets) {
 }
 
 Map(assign_dataset, city_url_list, city_names)
+
+
+
+# acs 2020
+
+#Health
+#no health care
+"B27010_017E", #Estimate!!Total:!!Under 19 years:!!No health insurance coverage
+"B27010_033E", #Estimate!!Total:!!19 to 34 years:!!No health insurance coverage
+"B27010_050E", #Estimate!!Total:!!35 to 64 years:!!No health insurance coverage
+"B27010_066E", #Estimate!!Total:!!65 years and over:!!No health insurance coverage
+
+#public health care
+"B18135_006E", #Estimate!!Total:!!Under 19 years:!!With a disability:!!With health insurance coverage:!!With public health coverage
+"B18135_011E", #Estimate!!Total:!!Under 19 years:!!No disability:!!With health insurance coverage:!!With public health coverage
+"B18135_017E", #Estimate!!Total:!!19 to 64 years:!!With a disability:!!With health insurance coverage:!!With public health coverage
+"B18135_022E", #Estimate!!Total:!!19 to 64 years:!!No disability:!!With health insurance coverage:!!With public health coverage
+"B18135_028E", #Estimate!!Total:!!65 years and over:!!With a disability:!!With health insurance coverage:!!With public health coverage
+"B18135_033E", #Estimate!!Total:!!65 years and over:!!No disability:!!With health insurance coverage:!!With public health coverage
+
+#snap
+"B99221_001E", #Estimate!!Total: SNAP recipients
