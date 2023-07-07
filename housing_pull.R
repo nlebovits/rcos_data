@@ -10,3 +10,23 @@
 "B25002_002E", #Occupied
 "B25002_003E", #Vacant
 "B25077_001E", #Median house value (dollars)
+
+#Eviction Lab
+library(httr)
+#Monthly 2016-2019	Census Tract
+r <- GET("https://evictionlab.org/uploads/philadelphia_monthly_2020_2021.csv")
+# Save to file
+bin <- content(r, "raw")
+writeBin(bin, "data.csv")
+# Read as csv
+Philadelphia_MONTHLY_Evictions = read.csv("data.csv", header = TRUE, dec = ",")
+
+#Weekly
+r <- GET("https://evictionlab.org/uploads/philadelphia_weekly_2020_2021.csv")
+# Save to file
+bin <- content(r, "raw")
+writeBin(bin, "data.csv")
+# Read as csv
+Philadelphia_WEEKLY_Evictions = read.csv("data.csv", header = TRUE, dec = ",")
+
+
