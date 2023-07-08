@@ -4,12 +4,11 @@ library(tidycensus)
 library(tidyverse)
 
 #census_api_key(get_env(.env), install=TRUE, overwrite=TRUE)
-
+#Define survey year & survey 
 year <- 2021
 dataset <- "acs5"
 # Set the geographic resolution to census tracts
 geo_res <- "tract"
-
 # Set the state and county FIPS code for Philadelphia
 state <- "PA"
 county <- "101"
@@ -56,6 +55,14 @@ philly_data <- get_acs(
 
 # Replace the strings in the "variable" column
 df <- mutate(philly_data, variable = str_replace_all(variable, replacements))
+
+df_pivot <- df %>%
+  pivot_wider(
+    id_cols = c("GEOID", "NAME"),
+    names_from = "variable",
+    values_from = c("estimate", "moe"),
+    names_sep = "_"
+  )
 
 #Eviction Lab
 library(httr)
